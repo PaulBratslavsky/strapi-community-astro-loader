@@ -1,0 +1,1 @@
+# strapi-community-astro-loader
