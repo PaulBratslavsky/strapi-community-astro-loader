@@ -1,0 +1,39 @@
+{
+	"name": "strapi-community-astro-loader",
+	"version": "1.0.0",
+	"description": "Community Strapi content loader for Astro",
+	"type": "module",
+	"main": "dist/index.js",
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": "./dist/index.js"
+	},
+	"scripts": {
+		"build": "tsup src/index.ts --format esm --dts --clean",
+		"dev": "tsup src/index.ts --format esm --dts --watch",
+		"prepublishOnly": "node --run build",
+		"check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
+		"test": "vitest"
+	},
+	"devDependencies": {
+		"astro": "^4.15.5",
+		"publint": "^0.2.10",
+		"tsup": "^8.2.4",
+		"typescript": "^5.6.2"
+	},
+	"peerDependencies": {
+		"astro": "^4.14.0 || ^5.0.0"
+	},
+	"keywords": [
+		"astro",
+		"astro-loader"
+	],
+	"author": "Paul Bratslavsky",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": ""
+	}
+}
