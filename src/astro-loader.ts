@@ -1,11 +1,6 @@
-import { z } from "zod";
-import type { Loader } from "astro/loaders";
-import type { ZodTypeAny, ZodObject } from "zod";
-
-// Configuration constants
-const STRAPI_BASE_URL =
-  process.env.STRAPI_BASE_URL || "http://localhost:1337";
-const SYNC_INTERVAL = 60 * 1000; // 1 minute in milliseconds
+import { z } from 'zod';
+import type { Loader } from 'astro/loaders';
+import type { ZodTypeAny, ZodObject } from 'zod';
 
 /**
  * Creates a Strapi content loader for Astro
@@ -13,47 +8,56 @@ const SYNC_INTERVAL = 60 * 1000; // 1 minute in milliseconds
  * @returns An Astro loader for the specified content type
  */
 
-export function strapiLoader({ contentType }: { contentType: string }): Loader {
+interface StrapiLoaderOptions {
+  contentType: string;
+  strapiUrl?: string;
+  syncInterval?: number;
+}
+
+export function strapiLoader({
+  contentType,
+  strapiUrl = process.env.PUBLIC_STRAPI_URL || 'http://localhost:1337',
+  syncInterval = 60 * 1000,
+}: StrapiLoaderOptions): Loader {
+  checkEnvironmentVariables(strapiUrl);
+
   return {
-    name: "strapi-posts",
+    name: `strapi-${contentType}`,
 
     load: async function (this: Loader, { store, meta, logger }) {
-      const lastSynced = meta.get("lastSynced");
+      const lastSynced = meta.get('lastSynced');
 
-      // Avoid frequent syncs
-      if (lastSynced && Date.now() - Number(lastSynced) < SYNC_INTERVAL) {
-        logger.info("Skipping Strapi sync");
+      if (lastSynced && Date.now() - Number(lastSynced) < syncInterval) {
+        logger.info('Skipping Strapi sync');
         return;
       }
 
-      logger.info("Fetching posts from Strapi");
+      logger.info(`Fetching ${contentType} from Strapi`);
 
       try {
-        // Fetch and store the content
-        const data = await fetchFromStrapi(`/api/${contentType}s`);
-        const posts = data?.data;
+        const data = await fetchFromStrapi(`/api/${contentType}s`, strapiUrl);
+        const items = data?.data;
 
-        if (!posts || !Array.isArray(posts)) {
-          throw new Error("Invalid data received from Strapi");
+        if (!items || !Array.isArray(items)) {
+          throw new Error('Invalid data received from Strapi');
         }
 
-        // Get the schema
         const schemaOrFn = this.schema;
         if (!schemaOrFn) {
-          throw new Error("Schema is not defined");
+          throw new Error('Schema is not defined');
         }
         const schema =
-          typeof schemaOrFn === "function" ? await schemaOrFn() : schemaOrFn;
+          typeof schemaOrFn === 'function' ? await schemaOrFn() : schemaOrFn;
         if (!(schema instanceof z.ZodType)) {
-          throw new Error("Invalid schema: expected a Zod schema");
+          throw new Error('Invalid schema: expected a Zod schema');
         }
 
-        type Post = z.infer<typeof schema>;
+        type Item = z.infer<typeof schema>;
 
         store.clear();
-        posts.forEach((post: Post) => store.set({ id: post.id, data: post }));
+        items.forEach((item: Item) => store.set({ id: item.id, data: item }));
 
-        meta.set("lastSynced", String(Date.now()));
+        meta.set('lastSynced', String(Date.now()));
       } catch (error) {
         logger.error(
           `Error loading Strapi content: ${(error as Error).message}`
@@ -64,10 +68,11 @@ export function strapiLoader({ contentType }: { contentType: string }): Loader {
 
     schema: async () => {
       const data = await fetchFromStrapi(
-        `/get-strapi-schema/schema/${contentType}`
+        `/get-strapi-schema/schema/${contentType}`,
+        strapiUrl
       );
       if (!data?.attributes) {
-        throw new Error("Invalid schema data received from Strapi");
+        throw new Error('Invalid schema data received from Strapi');
       }
       return generateZodSchema(data.attributes);
     },
@@ -87,7 +92,7 @@ function mapTypeToZodSchema(type: string, field: any): ZodTypeAny {
     media: () =>
       z.object({
         allowedTypes: z.array(z.enum(field.allowedTypes)),
-        type: z.literal("media"),
+        type: z.literal('media'),
         multiple: z.boolean(),
         url: z.string(),
         alternativeText: z.string().optional(),
@@ -115,7 +120,7 @@ function mapTypeToZodSchema(type: string, field: any): ZodTypeAny {
     object: () => {
       const shape: Record<string, ZodTypeAny> = {};
       for (const [key, value] of Object.entries(field.properties)) {
-        if (typeof value === "object" && value !== null && "type" in value) {
+        if (typeof value === 'object' && value !== null && 'type' in value) {
           shape[key] = mapTypeToZodSchema(value.type as string, value);
         } else {
           throw new Error(`Invalid field value for key: ${key}`);
@@ -152,9 +157,10 @@ function generateZodSchema(attributes: Record<string, any>): ZodObject<any> {
  */
 async function fetchFromStrapi(
   path: string,
+  strapiUrl: string,
   params?: Record<string, string>
 ): Promise<any> {
-  const url = new URL(path, STRAPI_BASE_URL);
+  const url = new URL(path, strapiUrl);
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -170,16 +176,15 @@ async function fetchFromStrapi(
     return response.json();
   } catch (error) {
     console.error(`Error fetching from Strapi: ${(error as Error).message}`);
-    throw error; // Re-throw the error for the caller to handle
+    throw error;
   }
 }
 
 // Ensure the required environment variable is set
-function checkEnvironmentVariables() {
-  if (!STRAPI_BASE_URL) {
-    throw new Error("STRAPI_BASE_URL environment variable is not set");
+function checkEnvironmentVariables(strapiUrl: string) {
+  if (!strapiUrl) {
+    throw new Error(
+      'STRAPI_BASE_URL is not set. Please provide it as a parameter or set PUBLIC_STRAPI_URL in your environment.'
+    );
   }
 }
-
-// Ensure environment variables are set before proceeding
-checkEnvironmentVariables();
