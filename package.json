@@ -1,6 +1,6 @@
 {
 	"name": "strapi-community-astro-loader",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Community Strapi content loader for Astro",
 	"type": "module",
 	"main": "dist/index.js",
@@ -17,7 +17,7 @@
 		"test": "vitest"
 	},
 	"devDependencies": {
-		"astro": "^4.15.5",
+		"astro": "^5.7.4",
 		"publint": "^0.2.10",
 		"tsup": "^8.2.4",
 		"typescript": "^5.6.2"
@@ -34,5 +34,9 @@
 	"repository": {
 		"type": "git",
 		"url": ""
+	},
+	"dependencies": {
+		"@types/qs": "^6.9.18",
+		"qs": "^6.14.0"
 	}
 }
