@@ -17,13 +17,13 @@
 		"test": "vitest"
 	},
 	"devDependencies": {
-		"astro": "^5.7.4",
-		"publint": "^0.2.10",
-		"tsup": "^8.2.4",
-		"typescript": "^5.6.2"
+		"astro": "^5.7.5",
+		"publint": "^0.3.12",
+		"tsup": "^8.4.0",
+		"typescript": "^5.8.3"
 	},
 	"peerDependencies": {
-		"astro": "^4.14.0 || ^5.0.0"
+		"astro": "^5.0.0"
 	},
 	"keywords": [
 		"astro",

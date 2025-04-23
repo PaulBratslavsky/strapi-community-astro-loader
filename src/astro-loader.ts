@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { Loader } from "astro/loaders";
+import type { Loader, LoaderContext } from 'astro/loaders';
+
 import {
   getPaginationInfo,
   generateZodSchema,
@@ -43,8 +44,8 @@ export function strapiLoader({
 
   return {
     name: `strapi-${contentType}`,
-
-    load: async function (this: Loader, { store, meta, logger }) {
+    load: async function(this: Loader, context: LoaderContext): Promise<void> {
+      const { store, meta, logger } = context;
       const lastSynced = meta.get("lastSynced");
 
       if (lastSynced && Date.now() - Number(lastSynced) < syncInterval) {
