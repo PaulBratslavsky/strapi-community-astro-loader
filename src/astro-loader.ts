@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import qs from 'qs';
 import type { Loader } from 'astro/loaders';
 import type { ZodTypeAny, ZodObject } from 'zod';
 
@@ -8,18 +9,31 @@ import type { ZodTypeAny, ZodObject } from 'zod';
  * @returns An Astro loader for the specified content type
  */
 
+
 interface StrapiLoaderOptions {
   contentType: string;
   strapiUrl?: string;
   syncInterval?: number;
+  params?: object;
+}
+
+interface ImportMetaEnv {
+  readonly STRAPI_BASE_URL?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
 }
 
 export function strapiLoader({
   contentType,
-  strapiUrl = process.env.PUBLIC_STRAPI_URL || 'http://localhost:1337',
+  strapiUrl = (import.meta as unknown as ImportMeta).env.STRAPI_BASE_URL || 'http://localhost:1337',
   syncInterval = 60 * 1000,
+  params = {},
 }: StrapiLoaderOptions): Loader {
   checkEnvironmentVariables(strapiUrl);
+
+  console.log('Loader initialized with params:', params);
 
   return {
     name: `strapi-${contentType}`,
@@ -32,10 +46,10 @@ export function strapiLoader({
         return;
       }
 
-      logger.info(`Fetching ${contentType} from Strapi`);
+      logger.info(`Fetching ${contentType} from Strapi with params: ${JSON.stringify(params)}`);
 
       try {
-        const data = await fetchFromStrapi(`/api/${contentType}s`, strapiUrl);
+        const data = await fetchFromStrapi(`/api/${contentType}s`, strapiUrl, params);
         const items = data?.data;
 
         if (!items || !Array.isArray(items)) {
@@ -85,6 +99,7 @@ export function strapiLoader({
  * @param field The field configuration object
  * @returns A Zod schema corresponding to the Strapi field type
  */
+
 function mapTypeToZodSchema(type: string, field: any): ZodTypeAny {
   const schemaMap: Record<string, () => ZodTypeAny> = {
     string: () => z.string(),
@@ -158,24 +173,28 @@ function generateZodSchema(attributes: Record<string, any>): ZodObject<any> {
 async function fetchFromStrapi(
   path: string,
   strapiUrl: string,
-  params?: Record<string, string>
+  params?: object
 ): Promise<any> {
   const url = new URL(path, strapiUrl);
-
+  console.log("Params from call: ", params);
   if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.set(key, value);
-    });
+    url.search = qs.stringify(params);
   }
 
   try {
+    console.log(`Fetching from Strapi: ${url.href}`);
     const response = await fetch(url.href);
+    
     if (!response.ok) {
-      throw new Error(`Failed to fetch from Strapi: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Strapi API error (${response.status}): ${errorText}`);
     }
+    
     return response.json();
   } catch (error) {
-    console.error(`Error fetching from Strapi: ${(error as Error).message}`);
+    if (error instanceof TypeError && error.message.includes('fetch failed')) {
+      throw new Error(`Failed to connect to Strapi at ${url.href}. Is the server running?`);
+    }
     throw error;
   }
 }
@@ -188,3 +207,6 @@ function checkEnvironmentVariables(strapiUrl: string) {
     );
   }
 }
+
+
+
