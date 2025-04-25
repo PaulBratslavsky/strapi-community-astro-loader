@@ -1,6 +1,6 @@
 {
 	"name": "strapi-community-astro-loader",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Community Strapi content loader for Astro",
 	"type": "module",
 	"main": "dist/index.js",
