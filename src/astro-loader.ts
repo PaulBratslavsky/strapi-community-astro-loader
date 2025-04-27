@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Loader } from "astro/loaders";
+import type { Loader, LoaderContext } from "astro/loaders";
 import {
   getPaginationInfo,
   checkEnvironmentVariables,
@@ -44,7 +44,7 @@ export function strapiLoader({
   return {
     name: `strapi-${contentType}`,
 
-    load: async function (this: Loader, { store, meta, logger }) {
+    load: async function (this: Loader, { store, meta, logger, parseData }: LoaderContext) {
       const lastSynced = meta.get("lastSynced");
 
       if (lastSynced && Date.now() - Number(lastSynced) < syncInterval) {
@@ -80,23 +80,23 @@ export function strapiLoader({
             throw new Error("Invalid data received from Strapi");
           }
 
-          const schemaOrFn = this.schema;
-
-          if (!schemaOrFn) {
-            throw new Error("Schema is not defined");
-          }
-
-          const schema =
-            typeof schemaOrFn === "function" ? await schemaOrFn() : schemaOrFn;
-
-          if (!(schema instanceof z.ZodType)) {
-            throw new Error("Invalid schema: expected a Zod schema");
-          }
-
-          type Item = z.infer<typeof schema>;
-
+          // Clear existing data
           store.clear();
-          items.forEach((item: Item) => store.set({ id: item.id, data: item }));
+          
+          // Process each item through parseData to ensure proper schema validation and type preservation
+          for (const item of items) {
+            // This is the critical step that ensures type information is preserved
+            const parsedEntry = await parseData({
+              id: item.id.toString(),
+              data: item,
+            });
+            
+            // Store the validated data with preserved type information
+            store.set({
+              id: parsedEntry.id,
+              data: parsedEntry.data,
+            });
+          }
 
           meta.set("lastSynced", String(Date.now()));
         }
