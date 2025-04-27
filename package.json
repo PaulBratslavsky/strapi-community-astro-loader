@@ -14,13 +14,15 @@
 		"build": "tsup src/index.ts --format esm --dts --clean",
 		"dev": "tsup src/index.ts --format esm --dts --watch",
 		"check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
-		"test": "vitest"
+		"test": "vitest --run"
 	},
 	"devDependencies": {
 		"astro": "^5.7.5",
+		"msw": "^2.7.5",
 		"publint": "^0.3.12",
 		"tsup": "^8.4.0",
-		"typescript": "^5.8.3"
+		"typescript": "^5.8.3",
+		"vitest": "^3.1.2"
 	},
 	"peerDependencies": {
 		"astro": "^5.0.0"
