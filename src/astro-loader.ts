@@ -1,12 +1,11 @@
 import { z } from "zod";
-import type { Loader, LoaderContext } from 'astro/loaders';
-
+import type { Loader } from "astro/loaders";
 import {
   getPaginationInfo,
-  generateZodSchema,
   checkEnvironmentVariables,
   fetchFromStrapi,
-} from "./utils";
+  inferSchemaFromResponse,
+} from "../utils";
 
 /**
  * Creates a Strapi content loader for Astro
@@ -44,8 +43,8 @@ export function strapiLoader({
 
   return {
     name: `strapi-${contentType}`,
-    load: async function(this: Loader, context: LoaderContext): Promise<void> {
-      const { store, meta, logger } = context;
+
+    load: async function (this: Loader, { store, meta, logger }) {
       const lastSynced = meta.get("lastSynced");
 
       if (lastSynced && Date.now() - Number(lastSynced) < syncInterval) {
@@ -65,17 +64,7 @@ export function strapiLoader({
         let hasMore = true;
 
         while (hasMore) {
-          const data = await fetchFromStrapi(
-            `/api/${contentType}s`,
-            strapiUrl,
-            {
-              ...params,
-              pagination: {
-                page,
-                pageSize: pageSize,
-              },
-            }
-          );
+          const data = await fetchFromStrapi(contentType, params);
 
           content.push(...data?.data);
 
@@ -120,15 +109,37 @@ export function strapiLoader({
     },
 
     schema: async () => {
-      const data = await fetchFromStrapi(
-        `/get-strapi-schema/schema/${contentType}`,
-        strapiUrl
+      // Fetch with deep population
+      const response = await fetchFromStrapi(
+        contentType,
+        {
+          ...params,
+          pagination: {
+            page: 1,
+            pageSize: pageSize,
+          },
+        }
       );
-      if (!data?.attributes) {
-        throw new Error("Invalid schema data received from Strapi");
+
+      if (!response?.data || !Array.isArray(response.data) || response.data.length === 0) {
+        throw new Error("No data available to infer schema");
       }
-      return generateZodSchema(data.attributes);
+      
+      const sampleData = response.data[0];
+      console.log("SAMPLE DATA:", JSON.stringify(sampleData, null, 2));
+      
+      const schema = inferSchemaFromResponse(sampleData);
+      
+      // Safe schema structure logging
+      console.log("SCHEMA STRUCTURE:", 
+        schema._def ? 
+          `Root type: ${schema._def.typeName}` : 
+          "Unable to inspect schema"
+      );
+      
+      return schema;
     },
   };
 }
 
+export { fetchFromStrapi };
