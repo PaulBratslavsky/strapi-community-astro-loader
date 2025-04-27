@@ -17,11 +17,12 @@
     "declaration": true,
     "declarationMap": true,
     /* If NOT transpiling with TypeScript: */
-    "module": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "noEmit": true,
     /* If your code doesn't run in the DOM: */
     "lib": ["es2022", "dom"],
     /* Additional options from the second configuration */
-    "types": ["vite/client"]
+    "types": ["vite/client", "astro/client"]
   }
 }
