@@ -44,7 +44,7 @@ export function strapiLoader({
   return {
     name: `strapi-${contentType}`,
 
-    load: async function (this: Loader, { store, meta, logger, parseData }: LoaderContext) {
+    load: async function (this: Loader, { store, meta, logger }: LoaderContext) {
       const lastSynced = meta.get("lastSynced");
 
       if (lastSynced && Date.now() - Number(lastSynced) < syncInterval) {
@@ -65,8 +65,13 @@ export function strapiLoader({
 
         while (hasMore) {
           const data = await fetchFromStrapi(contentType, params);
-
-          content.push(...data?.data);
+          
+          if (data?.data && Array.isArray(data.data)) {
+            content.push(...data.data);
+            console.log(`Fetched ${data.data.length} items from Strapi`);
+          } else {
+            console.warn("No valid data received from Strapi");
+          }
 
           const { currentPage, totalPages } = getPaginationInfo(data);
           hasMore = Boolean(
@@ -74,33 +79,69 @@ export function strapiLoader({
           );
           page++;
 
-          const items = content;
-
-          if (!items || !Array.isArray(items)) {
-            throw new Error("Invalid data received from Strapi");
+          if (!content.length) {
+            throw new Error("No content items received from Strapi");
           }
 
-          // Clear existing data
+          // Get the schema from the loader
+          const schemaFn = this.schema;
+          const schema = typeof schemaFn === 'function' ? await schemaFn() : schemaFn;
+          
+          if (!(schema instanceof z.ZodType)) {
+            throw new Error("Invalid schema: expected a Zod schema");
+          }
+          
+          console.log(`Using schema of type: ${schema.constructor.name}`);
+
+          // Clear the store before processing new items
           store.clear();
           
-          // Process each item through parseData to ensure proper schema validation and type preservation
-          for (const item of items) {
-            // This is the critical step that ensures type information is preserved
-            const parsedEntry = await parseData({
-              id: item.id.toString(),
-              data: item,
-            });
-            
-            // Store the validated data with preserved type information
-            store.set({
-              id: parsedEntry.id,
-              data: parsedEntry.data,
-            });
+          // Process each item with proper validation and storage
+          for (const item of content) {
+            if (item && item.id) {
+              try {
+                // Validate against schema first to ensure correct types
+                const validationResult = schema.safeParse(item);
+                
+                if (!validationResult.success) {
+                  console.error(`Validation failed for item ${item.id}:`, validationResult.error.message);
+                  continue;
+                }
+                
+                // Store the validated data in the expected format
+                store.set({
+                  id: String(item.id),
+                  data: validationResult.data // Use the validated data from the schema
+                });
+                
+                console.log(`Stored item ${item.id} with data keys:`, Object.keys(validationResult.data));
+              } catch (error) {
+                console.error(`Error processing item ${item.id}:`, error);
+                logger.error(`Error processing item ${item.id}: ${(error as Error).message}`);
+              }
+            }
+          }
+
+          // Verify data in store
+          const keys = store.keys();
+          console.log(`Store contains ${keys.length} entries`);
+          
+          if (keys.length > 0) {
+            const firstKey = keys[0];
+            if (firstKey) { // Guard against undefined
+              const entry = store.get(firstKey);
+              if (entry?.data) { // Check if data exists
+                console.log(`First item (${firstKey}) data keys:`, Object.keys(entry.data));
+              } else {
+                console.log(`First item (${firstKey}) has NO DATA`);
+              }
+            }
           }
 
           meta.set("lastSynced", String(Date.now()));
         }
       } catch (error) {
+        console.error("LOADER ERROR:", error);
         logger.error(
           `Error loading Strapi content: ${(error as Error).message}`
         );
@@ -126,14 +167,14 @@ export function strapiLoader({
       }
       
       const sampleData = response.data[0];
-      console.log("SAMPLE DATA:", JSON.stringify(sampleData, null, 2));
+      console.log("SAMPLE DATA for schema:", JSON.stringify(sampleData).substring(0, 100) + "...");
       
+      // Create schema from sample data
       const schema = inferSchemaFromResponse(sampleData);
       
-      // Safe schema structure logging
       console.log("SCHEMA STRUCTURE:", 
         schema._def ? 
-          `Root type: ${schema._def.typeName}` : 
+          `Root type: ${schema.constructor.name}` : 
           "Unable to inspect schema"
       );
       
