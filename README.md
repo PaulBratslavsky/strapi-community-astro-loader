@@ -7,10 +7,7 @@ I changed the implementation of how I infer types and no longer require the addi
 
 This package is a community-driven Astro loader for Strapi. It allows you to fetch content from a Strapi API and use it in your Astro project. 
 
-note: this is a work in progress and requires the use of the following package to be installed inside your Strapi project in order for it to work:
-
-https://www.npmjs.com/package/get-strapi-schema
-
+note: this is a work in progress
 
 ## Installation
 
