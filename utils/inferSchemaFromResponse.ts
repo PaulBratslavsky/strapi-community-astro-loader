@@ -22,12 +22,49 @@ export function inferSchemaFromResponse(data: any, fieldName?: string): ZodTypeA
     
     // Handle arrays with components (dynamic zones)
     if (hasComponents(data)) {
-      return z.array(
-        z.object({
-          __component: z.string(),
-          id: z.number().optional(),
-        }).passthrough()
-      );
+      type ComponentGroup = Record<string, Array<Record<string, any>>>;
+      
+      // Group items by component type
+      const componentGroups: ComponentGroup = data.reduce((acc, item) => {
+        if (item && typeof item === 'object' && '__component' in item) {
+          const componentType = item.__component;
+          if (!acc[componentType]) {
+            acc[componentType] = [];
+          }
+          // Remove __component from the item to avoid schema conflicts
+          const { __component, ...rest } = item;
+          acc[componentType].push(rest);
+        }
+        return acc;
+      }, {} as ComponentGroup);
+
+      // Only create discriminated union if we have valid component groups
+      const validComponentGroups = Object.entries(componentGroups).filter(([_, items]) => items.length > 0);
+      
+      if (validComponentGroups.length > 0) {
+        try {
+          // Create a discriminated union of component schemas
+          const componentSchemas = validComponentGroups.map(([componentType, items]) => {
+            // Infer schema for this component type
+            const componentSchema = inferSchemaFromResponse(items[0]);
+            return z.object({
+              __component: z.literal(componentType),
+              id: z.number().optional(),
+            }).merge(componentSchema as ZodObject<any>);
+          });
+
+          // Ensure we have at least one schema
+          if (componentSchemas.length === 0) {
+            return z.array(z.any());
+          }
+
+          // Create the discriminated union
+          return z.array(z.discriminatedUnion('__component', componentSchemas as [ZodObject<any>, ...ZodObject<any>[]]));
+        } catch (error) {
+          console.warn('Failed to create component schema:', error);
+          return z.array(z.any());
+        }
+      }
     }
     
     // For other arrays, infer based on first item
