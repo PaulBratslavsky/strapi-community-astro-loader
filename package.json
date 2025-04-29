@@ -1,6 +1,6 @@
 {
 	"name": "strapi-community-astro-loader",
-	"version": "2.0.2",
+	"version": "2.0.3",
 	"description": "Community Strapi content loader for Astro",
 	"type": "module",
 	"main": "dist/index.js",
@@ -8,7 +8,11 @@
 		"dist"
 	],
 	"exports": {
-		".": "./dist/index.js"
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.js"
+		}
 	},
 	"scripts": {
 		"build": "tsup src/index.ts --format esm --dts --clean",
