@@ -36,7 +36,8 @@
   },
   "keywords": [
     "astro",
-    "astro-loader"
+    "astro-loader",
+    "strapi"
   ],
   "author": "Paul Bratslavsky",
   "license": "MIT",
