@@ -42,7 +42,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "github:PaulBratslavsky/strapi-community-astro-loader"
   },
   "dependencies": {
     "@strapi/client": "^1.2.0"
