@@ -1,10 +1,8 @@
-import { z } from "zod";
 import type { Loader, LoaderContext } from "astro/loaders";
 import {
   getPaginationInfo,
   checkEnvironmentVariables,
   fetchFromStrapi,
-  inferSchemaFromResponse,
 } from "../utils";
 
 /**
@@ -35,6 +33,8 @@ export function strapiLoader<T extends { id: number | string }>({
     "http://localhost:1337",
   syncInterval = 60 * 1000,
   params = {},
+  // TODO: use pageSize in the `fetchFromStrapi` calls. (It was previously only being used in the schema calls.)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   pageSize = 25,
 }: StrapiLoaderOptions): Loader {
   checkEnvironmentVariables(strapiUrl);
@@ -83,49 +83,21 @@ export function strapiLoader<T extends { id: number | string }>({
           // TODO: is page being used for anything?
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           page++;
-
           if (!content.length) {
             throw new Error("No content items received from Strapi");
           }
 
-          // Get the schema from the loader
-          const schemaFn = this.schema;
-          const schema =
-            typeof schemaFn === "function" ? await schemaFn() : schemaFn;
-
-          if (!(schema instanceof z.ZodType)) {
-            throw new Error("Invalid schema: expected a Zod schema");
-          }
-
-          console.log(`Using schema of type: ${schema.constructor.name}`);
-
           // Clear the store before processing new items
           store.clear();
 
-          // Process each item with proper validation and storage
           for (const item of content) {
             if (item && item.id) {
               try {
-                // Validate against schema first to ensure correct types
-                const validationResult = schema.safeParse(item);
-
-                if (!validationResult.success) {
-                  console.error(
-                    `Validation failed for item ${item.id}:`,
-                    validationResult.error.message,
-                  );
-                  continue;
-                }
-
-                // Store the validated data in the expected format
-                store.set({
-                  id: String(item.id),
-                  data: validationResult.data, // Use the validated data from the schema
-                });
+                store.set({ id: String(item.id), data: item });
 
                 console.log(
                   `Stored item ${item.id} with data keys:`,
-                  Object.keys(validationResult.data),
+                  Object.keys(item),
                 );
               } catch (error) {
                 console.error(`Error processing item ${item.id}:`, error);
@@ -167,42 +139,10 @@ export function strapiLoader<T extends { id: number | string }>({
         throw error;
       }
     },
-
-    schema: async () => {
-      // Fetch with deep population
-      const response = await fetchFromStrapi(contentType, {
-        ...params,
-        pagination: {
-          page: 1,
-          pageSize: pageSize,
-        },
-      });
-
-      if (
-        !response?.data ||
-        !Array.isArray(response.data) ||
-        response.data.length === 0
-      ) {
-        throw new Error("No data available to infer schema");
-      }
-
-      const sampleData = response.data[0];
-      console.log(
-        "SAMPLE DATA for schema:",
-        JSON.stringify(sampleData).substring(0, 100) + "...",
+    schema: () => {
+      throw new Error(
+        "This default schema should not be used. Please specify your own when using `strapiLoader`.",
       );
-
-      // Create schema from sample data
-      const schema = inferSchemaFromResponse(sampleData);
-
-      console.log(
-        "SCHEMA STRUCTURE:",
-        schema._def
-          ? `Root type: ${schema.constructor.name}`
-          : "Unable to inspect schema",
-      );
-
-      return schema;
     },
   };
 }
