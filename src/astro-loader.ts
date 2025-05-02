@@ -80,6 +80,9 @@ export function strapiLoader({
           hasMore = Boolean(
             currentPage && totalPages && currentPage < totalPages,
           );
+          // TODO: is page being used for anything?
+
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           page++;
 
           if (!content.length) {
