@@ -10,27 +10,28 @@ export interface StrapiResponse<T> {
       total: number;
     };
   };
-  [key: string]: any; // Allow for additional properties
+  [key: string]: unknown; // Allow for additional properties
 }
 
-async function getCollectionType(
+async function getCollectionType<T extends unknown[]>(
   name: string,
   params: object,
-): Promise<StrapiResponse<any[]>> {
+): Promise<StrapiResponse<T>> {
   const data = (await strapiClient
     .collection(name)
-    .find(params)) as unknown as StrapiResponse<any[]>;
+    .find(params)) as unknown as StrapiResponse<T>;
   return data;
 }
 
 // TODO: Implement this later
-async function getSingleType(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function getSingleType<T>(
   name: string,
   params: object,
-): Promise<StrapiResponse<any>> {
+): Promise<StrapiResponse<T>> {
   const data = (await strapiClient
     .single(name)
-    .find(params)) as unknown as StrapiResponse<any>;
+    .find(params)) as unknown as StrapiResponse<T>;
   return data;
 }
 
@@ -40,14 +41,17 @@ async function getSingleType(
  * @param params Optional query parameters
  * @returns The JSON response from the API
  */
-async function fetchFromStrapi(
+async function fetchFromStrapi<T>(
   collectionName: string,
   params?: object,
-): Promise<any> {
+): Promise<StrapiResponse<T[]>> {
   console.log("Params from call: ", params);
 
   try {
-    const data = await getCollectionType(`${collectionName}s`, params || {});
+    const data = await getCollectionType<T[]>(
+      `${collectionName}s`,
+      params || {},
+    );
     return data;
   } catch (error) {
     if (error instanceof TypeError && error.message.includes("fetch failed")) {

@@ -1,5 +1,7 @@
 import { z } from "zod";
-import type { ZodTypeAny, ZodObject } from "zod";
+import type { ZodTypeAny, ZodObject, ZodRawShape } from "zod";
+
+type ZodComponentShape = ZodObject<{ __component: ZodTypeAny } & ZodRawShape>;
 
 /**
  * Infers a Zod schema from a data object
@@ -7,7 +9,7 @@ import type { ZodTypeAny, ZodObject } from "zod";
  */
 
 export function inferSchemaFromResponse(
-  data: any,
+  data: unknown,
   fieldName?: string,
 ): ZodTypeAny {
   // Handle null/undefined
@@ -27,7 +29,7 @@ export function inferSchemaFromResponse(
 
     // Handle arrays with components (dynamic zones)
     if (hasComponents(data)) {
-      type ComponentGroup = Record<string, Array<Record<string, any>>>;
+      type ComponentGroup = Record<string, Array<Record<string, unknown>>>;
 
       // Group items by component type
       const componentGroups: ComponentGroup = data.reduce((acc, item) => {
@@ -37,6 +39,7 @@ export function inferSchemaFromResponse(
             acc[componentType] = [];
           }
           // Remove __component from the item to avoid schema conflicts
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { __component, ...rest } = item;
           acc[componentType].push(rest);
         }
@@ -45,7 +48,7 @@ export function inferSchemaFromResponse(
 
       // Only create discriminated union if we have valid component groups
       const validComponentGroups = Object.entries(componentGroups).filter(
-        ([_, items]) => items.length > 0,
+        ([, items]) => items.length > 0,
       );
 
       if (validComponentGroups.length > 0) {
@@ -60,7 +63,7 @@ export function inferSchemaFromResponse(
                   __component: z.literal(componentType),
                   id: z.number().optional(),
                 })
-                .merge(componentSchema as ZodObject<any>);
+                .merge(componentSchema as ZodObject<ZodRawShape>);
             },
           );
 
@@ -73,7 +76,7 @@ export function inferSchemaFromResponse(
           return z.array(
             z.discriminatedUnion(
               "__component",
-              componentSchemas as [ZodObject<any>, ...ZodObject<any>[]],
+              componentSchemas as [ZodComponentShape, ...ZodComponentShape[]],
             ),
           );
         } catch (error) {
@@ -183,7 +186,7 @@ function inferEmptyArrayTypeFromName(fieldName: string): ZodTypeAny | null {
 /**
  * Checks if array contains components with __component discriminator
  */
-function hasComponents(data: any[]): boolean {
+function hasComponents(data: unknown[]): boolean {
   return data.some(
     (item) => item && typeof item === "object" && "__component" in item,
   );
@@ -192,7 +195,7 @@ function hasComponents(data: any[]): boolean {
 /**
  * Infers schema for primitive types
  */
-function inferPrimitiveSchema(data: any): ZodTypeAny {
+function inferPrimitiveSchema(data: unknown): ZodTypeAny {
   if (typeof data === "string") {
     // Check if it looks like a date
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(data)) {

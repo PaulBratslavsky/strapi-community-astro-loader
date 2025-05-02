@@ -18,17 +18,24 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
     "dev": "tsup src/index.ts --format esm --dts --watch",
-    "lint": "prettier -w .",
+    "format": "prettier -c .",
+    "format:write": "prettier -w .",
+    "lint": "eslint .",
+    "lint:write": "eslint --fix .",
     "check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
     "test": "vitest --run"
   },
   "devDependencies": {
+    "@eslint/compat": "^1.2.9",
+    "@eslint/js": "^9.26.0",
     "astro": "^5.7.5",
+    "eslint": "^9.25.1",
     "msw": "^2.7.5",
     "prettier": "^3.5.3",
     "publint": "^0.3.12",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8.31.1",
     "vitest": "^3.1.2"
   },
   "peerDependencies": {

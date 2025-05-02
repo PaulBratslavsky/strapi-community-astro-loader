@@ -29,7 +29,7 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-export function strapiLoader({
+export function strapiLoader<T extends { id: number | string }>({
   contentType,
   strapiUrl = (import.meta as unknown as ImportMeta).env.STRAPI_BASE_URL ||
     "http://localhost:1337",
@@ -62,12 +62,12 @@ export function strapiLoader({
       );
 
       try {
-        const content = [];
+        const content = [] as T[];
         let page = 1;
         let hasMore = true;
 
         while (hasMore) {
-          const data = await fetchFromStrapi(contentType, params);
+          const data = await fetchFromStrapi<T>(contentType, params);
 
           if (data?.data && Array.isArray(data.data)) {
             content.push(...data.data);
@@ -80,6 +80,8 @@ export function strapiLoader({
           hasMore = Boolean(
             currentPage && totalPages && currentPage < totalPages,
           );
+          // TODO: is page being used for anything?
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           page++;
 
           if (!content.length) {
