@@ -79,9 +79,34 @@ describe("astroLoader", () => {
         expect(context.meta.get("lastSynced")).toEqual(NOW_STR);
       });
 
-      it.todo("should throw error when invalid data returned from Strapi");
-      it.todo("should throw error when empty data list returned from Strapi");
-      it.todo("should throw error when Strapi API fails");
+      it("should throw error when invalid data returned from Strapi", async () => {
+        const invalidResponseShapeLoader = strapiLoader({
+          ...MINIMAL_LOADER_OPTS,
+          contentType: "invalidShape",
+        });
+        await expect(
+          invalidResponseShapeLoader.load(context),
+        ).rejects.toThrowError();
+      });
+
+      it("should store nothing when empty data list returned from Strapi", async () => {
+        const emptyLoader = strapiLoader({
+          ...MINIMAL_LOADER_OPTS,
+          contentType: "empty",
+        });
+        await emptyLoader.load(context);
+        expect(context.store.entries().length).toBe(0);
+        expect(context.parseData).toHaveBeenCalledTimes(0);
+        expect(context.generateDigest).toHaveBeenCalledTimes(0);
+      });
+
+      it("should throw error when Strapi API fails", async () => {
+        const errorLoader = strapiLoader({
+          ...MINIMAL_LOADER_OPTS,
+          contentType: "error",
+        });
+        await expect(errorLoader.load(context)).rejects.toThrowError();
+      });
     });
 
     describe("without previous sync", async () => {
