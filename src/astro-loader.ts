@@ -1,19 +1,7 @@
 import type { Loader, LoaderContext } from "astro/loaders";
-import {
-  type API,
-  type Config as StrapiClientConfig,
-  strapi,
-} from "@strapi/client";
+import { type API, strapi } from "@strapi/client";
 import invariant from "tiny-invariant";
-
-export interface StrapiLoaderOptions {
-  contentType: string;
-  clientConfig: StrapiClientConfig;
-  pluralContentType?: string;
-  cacheDurationInMs?: number;
-  params?: Omit<API.BaseQueryParams, "pagination">;
-  pageSize?: number;
-}
+import type { StrapiLoaderOptions } from "./options";
 
 export function strapiLoader({
   contentType,

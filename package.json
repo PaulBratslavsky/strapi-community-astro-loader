@@ -22,8 +22,7 @@
     "format:write": "prettier -w .",
     "lint": "eslint .",
     "lint:write": "eslint --fix .",
-    "check": "prettier -c . && eslint .",
-    "package:check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
+    "check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
     "test": "vitest --run"
   },
   "devDependencies": {

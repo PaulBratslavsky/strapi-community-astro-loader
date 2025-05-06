@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { strapiLoader, type StrapiLoaderOptions } from "./astro-loader";
+import { strapiLoader } from "./astro-loader";
+import type { StrapiLoaderOptions } from "./options";
 import type { Loader, LoaderContext } from "astro/loaders";
 import {
   CLIENT_CONFIG,
