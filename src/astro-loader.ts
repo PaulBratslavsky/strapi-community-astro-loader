@@ -1,143 +1,79 @@
 import type { Loader, LoaderContext } from "astro/loaders";
 import {
-  getPaginationInfo,
-  checkEnvironmentVariables,
-  fetchFromStrapi,
-} from "../utils";
+  type API,
+  type Config as StrapiClientConfig,
+  strapi,
+} from "@strapi/client";
+import invariant from "tiny-invariant";
 
-/**
- * Creates a Strapi content loader for Astro
- * @param contentType The Strapi content type to load
- * @returns An Astro loader for the specified content type
- */
-
-interface StrapiLoaderOptions {
+export interface StrapiLoaderOptions {
   contentType: string;
-  strapiUrl?: string;
-  syncInterval?: number;
-  params?: object;
+  clientConfig: StrapiClientConfig;
+  pluralContentType?: string;
+  cacheDurationInMs?: number;
+  params?: Omit<API.BaseQueryParams, "pagination">;
   pageSize?: number;
 }
 
-interface ImportMetaEnv {
-  readonly STRAPI_BASE_URL?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
-
-export function strapiLoader<T extends { id: number | string }>({
+export function strapiLoader({
   contentType,
-  strapiUrl = (import.meta as unknown as ImportMeta).env.STRAPI_BASE_URL ||
-    "http://localhost:1337",
-  syncInterval = 60 * 1000,
-  params = {},
-  // TODO: use pageSize in the `fetchFromStrapi` calls. (It was previously only being used in the schema calls.)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  clientConfig,
+  params,
+  pluralContentType = `${contentType}s`,
+  cacheDurationInMs = 0,
   pageSize = 25,
 }: StrapiLoaderOptions): Loader {
-  checkEnvironmentVariables(strapiUrl);
-
-  console.log("Loader initialized with params:", params);
-
+  const client = strapi(clientConfig);
+  const collection = client.collection(pluralContentType);
   return {
-    name: `strapi-${contentType}`,
-
-    load: async function (
-      this: Loader,
-      { store, meta, logger }: LoaderContext,
-    ) {
+    name: contentType,
+    load: async function ({
+      store,
+      meta,
+      logger,
+      generateDigest,
+      parseData,
+    }: LoaderContext) {
       const lastSynced = meta.get("lastSynced");
 
-      if (lastSynced && Date.now() - Number(lastSynced) < syncInterval) {
-        logger.info("Skipping Strapi sync");
+      if (lastSynced && Date.now() - Number(lastSynced) < cacheDurationInMs) {
+        logger.info("Skipping sync");
         return;
       }
 
-      logger.info(
-        `Fetching ${contentType} from Strapi with params: ${JSON.stringify(
-          params,
-        )}`,
+      logger.debug(
+        `Fetching from Strapi with params: ${JSON.stringify(params)}`,
       );
 
-      try {
-        const content = [] as T[];
-        let page = 1;
-        let hasMore = true;
+      let currentPageNum = 1;
+      let totalPageCount = Number.MAX_SAFE_INTEGER; // TODO: is there a way to get this before paging?
 
-        while (hasMore) {
-          const data = await fetchFromStrapi<T>(contentType, params);
+      do {
+        const paginatedParams = {
+          ...params,
+          pagination: { page: currentPageNum, pageSize },
+        } satisfies API.BaseQueryParams;
+        const {
+          data: page,
+          meta: { pagination },
+        } = await collection.find(paginatedParams);
 
-          if (data?.data && Array.isArray(data.data)) {
-            content.push(...data.data);
-            console.log(`Fetched ${data.data.length} items from Strapi`);
-          } else {
-            console.warn("No valid data received from Strapi");
-          }
-
-          const { currentPage, totalPages } = getPaginationInfo(data);
-          hasMore = Boolean(
-            currentPage && totalPages && currentPage < totalPages,
-          );
-          // TODO: is page being used for anything?
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          page++;
-          if (!content.length) {
-            throw new Error("No content items received from Strapi");
-          }
-
-          // Clear the store before processing new items
-          store.clear();
-
-          for (const item of content) {
-            if (item && item.id) {
-              try {
-                store.set({ id: String(item.id), data: item });
-
-                console.log(
-                  `Stored item ${item.id} with data keys:`,
-                  Object.keys(item),
-                );
-              } catch (error) {
-                console.error(`Error processing item ${item.id}:`, error);
-                logger.error(
-                  `Error processing item ${item.id}: ${(error as Error).message}`,
-                );
-              }
-            }
-          }
-
-          // Verify data in store
-          const keys = store.keys();
-          console.log(`Store contains ${keys.length} entries`);
-
-          if (keys.length > 0) {
-            const firstKey = keys[0];
-            if (firstKey) {
-              // Guard against undefined
-              const entry = store.get(firstKey);
-              if (entry?.data) {
-                // Check if data exists
-                console.log(
-                  `First item (${firstKey}) data keys:`,
-                  Object.keys(entry.data),
-                );
-              } else {
-                console.log(`First item (${firstKey}) has NO DATA`);
-              }
-            }
-          }
-
-          meta.set("lastSynced", String(Date.now()));
+        for (const document of page) {
+          const id = String(document.id); // TODO: should this be documentId?
+          const data = await parseData({ id, data: document });
+          const digest = generateDigest(data);
+          store.set({ id, digest, data });
         }
-      } catch (error) {
-        console.error("LOADER ERROR:", error);
-        logger.error(
-          `Error loading Strapi content: ${(error as Error).message}`,
+        invariant(
+          pagination,
+          "Strapi did not return pagination info. Can not page through content.",
         );
-        throw error;
-      }
+        meta.set("lastSynced", String(Date.now()));
+
+        totalPageCount = pagination.pageCount;
+        logger.info(`Stored page ${currentPageNum} of ${totalPageCount}.`);
+        currentPageNum++;
+      } while (currentPageNum <= totalPageCount);
     },
     schema: () => {
       throw new Error(
@@ -146,5 +82,3 @@ export function strapiLoader<T extends { id: number | string }>({
     },
   };
 }
-
-export { fetchFromStrapi };

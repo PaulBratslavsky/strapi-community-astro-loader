@@ -22,7 +22,8 @@
     "format:write": "prettier -w .",
     "lint": "eslint .",
     "lint:write": "eslint --fix .",
-    "check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
+    "check": "prettier -c . && eslint .",
+    "package:check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
     "test": "vitest --run"
   },
   "devDependencies": {
@@ -53,7 +54,8 @@
     "url": "github:PaulBratslavsky/strapi-community-astro-loader"
   },
   "dependencies": {
-    "@strapi/client": "^1.2.0"
+    "@strapi/client": "^1.2.0",
+    "tiny-invariant": "^1.3.3"
   },
   "engines": {
     "node": "~22.14.0",
