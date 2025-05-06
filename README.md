@@ -1,6 +1,6 @@
 # Strapi Community Astro Loader
 
-**Update:** v2 for Strapi Community Astro Loader now is here.
+**Update:** v3 for Strapi Community Astro Loader now is here.
 
 I changed the implementation of how I infer types and no longer require the additional Strapi package, like in the first version of the loader.
 
@@ -20,18 +20,27 @@ npm install strapi-community-astro-loader
 import { strapiLoader } from "strapi-community-astro-loader";
 
 // pass the collection type name to the loader
-const strapiPostsLoader = defineCollection({
-  loader: strapiLoader({ contentType: "article" }),
+const article = defineCollection({
+  loader: strapiLoader({ 
+      contentType: "article", 
+      clientConfig: { baseURL: "http://localhost:1337/api" } 
+  }),
 });
 ```
 
 You can now pass populate options to the loader. Using the params object you can pass populate options to the loader.
 
 ```ts
-const strapiPostsLoader = defineCollection({
-  loader: strapiLoader({ contentType: "articles", params: { populate: "*" } }),
+const article = defineCollection({
+    loader: strapiLoader({
+        contentType: "article",
+        clientConfig: { baseURL: "http://localhost:1337/api" },
+        params: { populate: "*" }
+    }),
 });
 ```
+
+For more options, see the `StrapiLoaderOptions` type.
 
 ## License
 
