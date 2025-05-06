@@ -1,48 +1,62 @@
 {
-	"name": "strapi-community-astro-loader",
-	"version": "2.0.6",
-	"description": "Community Strapi content loader for Astro",
-	"type": "module",
-	"main": "dist/index.js",
-	"types": "dist/index.d.ts",
-	"files": [
-		"dist"
-	],
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.js"
-		}
-	},
-	"scripts": {
-		"build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
-		"dev": "tsup src/index.ts --format esm --dts --watch",
-		"check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
-		"test": "vitest --run"
-	},
-	"devDependencies": {
-		"astro": "^5.7.5",
-		"msw": "^2.7.5",
-		"publint": "^0.3.12",
-		"tsup": "^8.4.0",
-		"typescript": "^5.8.3",
-		"vitest": "^3.1.2"
-	},
-	"peerDependencies": {
-		"astro": "^5.0.0"
-	},
-	"keywords": [
-		"astro",
-		"astro-loader"
-	],
-	"author": "Paul Bratslavsky",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": ""
-	},
-	"dependencies": {
-		"@strapi/client": "^1.2.0"
-	}
+  "name": "strapi-community-astro-loader",
+  "version": "2.0.6",
+  "description": "Community Strapi content loader for Astro",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "format": "prettier -c .",
+    "format:write": "prettier -w .",
+    "lint": "eslint .",
+    "lint:write": "eslint --fix .",
+    "check": "publint && attw $(pnpm pack) --ignore-rules=cjs-resolves-to-esm",
+    "test": "vitest --run"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^1.2.9",
+    "@eslint/js": "^9.26.0",
+    "astro": "^5.7.5",
+    "eslint": "^9.25.1",
+    "msw": "^2.7.5",
+    "prettier": "^3.5.3",
+    "publint": "^0.3.12",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.31.1",
+    "vitest": "^3.1.2"
+  },
+  "peerDependencies": {
+    "astro": "^5.0.0"
+  },
+  "keywords": [
+    "astro",
+    "astro-loader",
+    "strapi"
+  ],
+  "author": "Paul Bratslavsky",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "github:PaulBratslavsky/strapi-community-astro-loader"
+  },
+  "dependencies": {
+    "@strapi/client": "^1.2.0"
+  },
+  "engines": {
+    "node": "~22.14.0",
+    "npm": "~10.9.0"
+  }
 }
