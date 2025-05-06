@@ -2,12 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { strapiLoader } from "./strapi-loader";
 import type { StrapiLoaderOptions } from "./options";
 import type { Loader, LoaderContext } from "astro/loaders";
-import {
-  CLIENT_CONFIG,
-  mockLoaderContext,
-  PAGES,
-  TYPE,
-} from "../test/test.utils";
+import { CLIENT_CONFIG, PAGES, TYPE } from "../test";
+import { mockLoaderContext } from "../test/mocks";
 import type { ZodType } from "astro/zod";
 import {
   NOW,
@@ -16,7 +12,7 @@ import {
   TEN_SECONDS_IN_MS,
   THIRTY_SECONDS_AGO_STR,
   THIRTY_SECONDS_IN_MS,
-} from "../test/date.constants";
+} from "../test/dates";
 
 describe("strapiLoader", () => {
   const MINIMAL_LOADER_OPTS: StrapiLoaderOptions = {
@@ -121,7 +117,9 @@ describe("strapiLoader", () => {
         expect(context.meta.get("lastSynced")).toEqual(TEN_SECONDS_AGO_STR);
       });
     });
+  });
 
+  describe("#name", () => {
     it("should name loader based on content type", () => {
       const { name } = strapiLoader({
         contentType: TYPE,

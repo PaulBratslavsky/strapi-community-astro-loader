@@ -1,5 +1,6 @@
 import { vi, afterAll, afterEach, beforeAll, beforeEach } from "vitest";
-import { server } from "./test/test.utils";
+
+import { server } from "./test/server";
 
 beforeAll(() => {
   server.listen();
