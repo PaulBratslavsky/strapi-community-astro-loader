@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { strapiLoader } from "./astro-loader";
+import { strapiLoader } from "./strapi-loader";
 import type { StrapiLoaderOptions } from "./options";
 import type { Loader, LoaderContext } from "astro/loaders";
 import {
@@ -18,7 +18,7 @@ import {
   THIRTY_SECONDS_IN_MS,
 } from "../test/date.constants";
 
-describe("astroLoader", () => {
+describe("strapiLoader", () => {
   const MINIMAL_LOADER_OPTS: StrapiLoaderOptions = {
     contentType: TYPE,
     clientConfig: CLIENT_CONFIG,
