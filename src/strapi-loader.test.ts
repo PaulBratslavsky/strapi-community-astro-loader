@@ -34,7 +34,7 @@ describe("strapiLoader", () => {
     function syncSpecs() {
       it("should page through all content type data", async () => {
         const expectedDataStoreEntries = PAGES.map((page) => ({
-          id: String(page.id),
+          id: String(page.documentId),
           data: page,
           digest: Object.entries(page).toString(),
         }));
