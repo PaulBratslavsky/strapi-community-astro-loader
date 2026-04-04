@@ -1,6 +1,6 @@
 {
   "name": "strapi-community-astro-loader",
-  "version": "3.0.0-rc.0",
+  "version": "4.0.0",
   "description": "Community Strapi content loader for Astro",
   "type": "module",
   "main": "dist/index.js",
@@ -28,7 +28,7 @@
   "devDependencies": {
     "@eslint/compat": "^1.2.9",
     "@eslint/js": "^9.26.0",
-    "astro": "^5.7.5",
+    "astro": "^6.0.0",
     "eslint": "^9.25.1",
     "msw": "^2.7.5",
     "prettier": "^3.5.3",
@@ -39,7 +39,7 @@
     "vitest": "^3.1.2"
   },
   "peerDependencies": {
-    "astro": "^5.0.0"
+    "astro": "^6.0.0"
   },
   "keywords": [
     "astro",

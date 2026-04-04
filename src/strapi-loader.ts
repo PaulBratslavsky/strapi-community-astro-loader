@@ -63,10 +63,5 @@ export function strapiLoader({
         currentPageNum++;
       } while (currentPageNum <= totalPageCount);
     },
-    schema: () => {
-      throw new Error(
-        "This default schema should not be used. Please specify your own when using `strapiLoader`.",
-      );
-    },
   };
 }

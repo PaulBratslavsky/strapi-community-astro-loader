@@ -4,7 +4,6 @@ import type { StrapiLoaderOptions } from "./options";
 import type { Loader, LoaderContext } from "astro/loaders";
 import { CLIENT_CONFIG, PAGES, TYPE } from "../test";
 import { mockLoaderContext } from "../test/mocks";
-import type { ZodType } from "astro/zod";
 import {
   NOW,
   NOW_STR,
@@ -129,14 +128,4 @@ describe("strapiLoader", () => {
     });
   });
 
-  describe("#schema", () => {
-    it("should throw Error if default schema is used", () => {
-      const { schema } = strapiLoader(MINIMAL_LOADER_OPTS);
-      expect(schema).toBeTypeOf("function");
-      const schemaFunc = schema as () => ZodType;
-      expect(() => {
-        schemaFunc();
-      }).toThrowError();
-    });
-  });
 });

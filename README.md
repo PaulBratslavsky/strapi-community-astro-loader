@@ -1,46 +1,156 @@
 # Strapi Community Astro Loader
 
-**Update:** v3 for Strapi Community Astro Loader now is here.
+A community-driven Astro content loader for Strapi. Fetch content from a Strapi API and use it in your Astro project with full Content Layer support.
 
-I changed the implementation of how I infer types and no longer require the additional Strapi package, like in the first version of the loader.
+**v4** adds support for **Astro v6** and **Zod v4**.
 
-This package is a community-driven Astro loader for Strapi. It allows you to fetch content from a Strapi API and use it in your Astro project.
+## Requirements
 
-note: this is a work in progress
+- Astro v6+
+- Strapi v5+
+- Node.js 22+
 
 ## Installation
 
 ```bash
-npm install strapi-community-astro-loader
+npm install strapi-community-astro-loader @strapi/client
 ```
 
 ## Usage
 
+### Basic
+
 ```ts
+import { defineCollection, z } from "astro:content";
 import { strapiLoader } from "strapi-community-astro-loader";
 
-// pass the collection type name to the loader
-const article = defineCollection({
-  loader: strapiLoader({ 
-      contentType: "article", 
-      clientConfig: { baseURL: "http://localhost:1337/api" } 
+const articles = defineCollection({
+  loader: strapiLoader({
+    contentType: "article",
+    clientConfig: { baseURL: "http://localhost:1337/api" },
+  }),
+  schema: z.object({
+    title: z.string(),
+    slug: z.string(),
+    content: z.string().optional(),
+  }),
+});
+
+export const collections = { articles };
+```
+
+### With Auth Token
+
+```ts
+const articles = defineCollection({
+  loader: strapiLoader({
+    contentType: "article",
+    clientConfig: {
+      baseURL: "http://localhost:1337/api",
+      auth: process.env.STRAPI_TOKEN,
+    },
+  }),
+  schema: z.object({
+    title: z.string(),
+    slug: z.string(),
   }),
 });
 ```
 
-You can now pass populate options to the loader. Using the params object you can pass populate options to the loader.
+### With Populate Params
+
+Use the `params` option to control field population. This is passed directly to `@strapi/client`.
 
 ```ts
-const article = defineCollection({
-    loader: strapiLoader({
-        contentType: "article",
-        clientConfig: { baseURL: "http://localhost:1337/api" },
-        params: { populate: "*" }
-    }),
+const articles = defineCollection({
+  loader: strapiLoader({
+    contentType: "article",
+    clientConfig: { baseURL: "http://localhost:1337/api" },
+    params: {
+      populate: {
+        featuredImage: { fields: ["url", "alternativeText"] },
+        author: {
+          populate: {
+            image: { fields: ["url", "alternativeText"] },
+          },
+        },
+      },
+    },
+  }),
+  schema: z.object({
+    title: z.string(),
+    slug: z.string(),
+    featuredImage: z.object({
+      url: z.string(),
+      alternativeText: z.string().nullable(),
+    }).optional(),
+    author: z.object({
+      fullName: z.string(),
+      image: z.object({
+        url: z.string(),
+        alternativeText: z.string().nullable(),
+      }).optional(),
+    }).optional(),
+  }),
 });
 ```
 
-For more options, see the `StrapiLoaderOptions` type.
+### With Custom Plural Content Type
+
+By default, the loader appends `s` to the `contentType` name. If your content type has a different plural form, specify it explicitly:
+
+```ts
+const categories = defineCollection({
+  loader: strapiLoader({
+    contentType: "category",
+    pluralContentType: "categories",
+    clientConfig: { baseURL: "http://localhost:1337/api" },
+  }),
+});
+```
+
+## Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `contentType` | `string` | **required** | The Strapi content type to query |
+| `clientConfig` | `Config` | **required** | Config passed to `@strapi/client` (`baseURL`, `auth`) |
+| `params` | `object` | `undefined` | Query params passed to Strapi (populate, filters, etc.) |
+| `pluralContentType` | `string` | `${contentType}s` | Plural form of the content type name |
+| `cacheDurationInMs` | `number` | `0` | How long to cache a sync (in ms). `0` = always fetch |
+| `pageSize` | `number` | `25` | Number of items per page when paginating |
+
+## Migrating from v2/v3
+
+### Key changes
+
+1. **Schema is no longer auto-inferred.** Define your own schema using `z` from `astro:content` in `defineCollection`.
+2. **`strapiUrl` is replaced by `clientConfig`.** Pass `{ baseURL: "http://localhost:1337/api" }` instead.
+3. **`syncInterval` is replaced by `cacheDurationInMs`.**
+4. **No more bundled Zod.** The loader uses Astro's built-in Zod, which is Zod v4 in Astro v6.
+
+### Before (v2)
+
+```ts
+const articles = defineCollection({
+  loader: strapiLoader({ contentType: "article" }),
+});
+```
+
+### After (v4)
+
+```ts
+const articles = defineCollection({
+  loader: strapiLoader({
+    contentType: "article",
+    clientConfig: { baseURL: "http://localhost:1337/api" },
+  }),
+  schema: z.object({
+    title: z.string(),
+    slug: z.string(),
+  }),
+});
+```
 
 ## License
 
