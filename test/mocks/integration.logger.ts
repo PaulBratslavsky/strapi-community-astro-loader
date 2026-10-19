@@ -15,4 +15,6 @@ export class MockIntegrationLogger implements AstroIntegrationLogger {
   public warn = vi.fn();
   public error = vi.fn();
   public debug = vi.fn();
+  public flush = vi.fn();
+  public close = vi.fn();
 }
